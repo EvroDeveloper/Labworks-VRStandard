@@ -1,0 +1,9 @@
+{
+  "name": "com.shortstak.customshaders.vrstandard",
+  "version": "1.0.5",
+  "displayName": "VR Standard + Extras",
+  "description": "A recreation of the original VR Standard used in Boneworks + a few forks!",
+  "unity": "2021.3",
+  "unityRelease": "16f1",
+  "hideInEditor": false
+}
