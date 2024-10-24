@@ -1,11 +1,10 @@
 # Labworks-VRStandard
 
-The official recreation of the shader used in Boneworks!
+The official recreation of the VR Standard Shader used in Boneworks!
 
 Made by ShortStak & EvroDev
 
-This package comes with the main recreation shader along with some forks of it
-
+This package comes with the main recreation shader along with some extra forks of it
 
 # Installation Guide
 
