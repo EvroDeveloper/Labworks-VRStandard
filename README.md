@@ -14,3 +14,14 @@ Go to Window -> Package Manager -> Click the + icon -> Click, "Add package from 
 ```
 https://github.com/EvroDeveloper/Labworks-VRStandard.git
 ```
+
+# Features:
+ - SSR
+ - Parallax Occlusion Mapping
+ - Metallic Map Packing Settings (MAS, RMA, MetallicSmoothness, or Mask. If no map is present, it will default to using the Float slider inputs)
+ - Detail Map for Albedo and Normal
+ - Color Mask
+ - Vertex Color Options (Vertex Occlusion, Vertex Tint, etc)
+ - Emission and Albedo Mult (if needed, used on a couple of BW materials)
+ - Transparency (Separate Shaders for Transparent and a couple other forks)
+ - Render Face Culling (Back, Front, or Both)
