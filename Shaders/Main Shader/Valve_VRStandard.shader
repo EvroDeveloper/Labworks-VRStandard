@@ -14,11 +14,13 @@ Shader "Valve/VRStandard"
 		[HideInInspector]_Glossiness("Smoothnes", Range( 0 , 1.5)) = 1
 		_Metallic("Metallic", Range( 0 , 2)) = 1
 		_Specmod("Smoothness Scale", Range( 0 , 2)) = 0
+		[Space(20)][Header(BRDF Lut)][Space(10)][Toggle(_BRDFMAP)] BRDFMAP("Enable BRDF map", Float) = 0
+		[NoScaleOffset][SingleLineTexture]g_tBRDFMap("BRDF map", 2D) = "white" {}
 		[Header(Parallax)][NoScaleOffset][SingleLineTexture]_ParallaxMap("Height Map", 2D) = "white" {}
 		_Parallax("Height Scale", Float) = 0
 		[Header(Emission)][NoScaleOffset][SingleLineTexture]_EmissionMap("Emission Map", 2D) = "white" {}
-		_EmissionFalloff("Emission Falloff", Float) = 0
 		[HDR]_EmissionColor("Emission Color", Color) = (0,0,0,0)
+		_EmissionFalloff("Emission Falloff", Float) = 0
 		_BakedMutiplier("Emission Baked Multiplier", Float) = 0
 		[Toggle(_EMITALBEDO_ON)] _EmitAlbedo("Emit Albedo", Float) = 0
 		[Header(Occlusion)][NoScaleOffset][SingleLineTexture]_OcclusionMap("Occlusion Map", 2D) = "white" {}
@@ -29,8 +31,6 @@ Shader "Valve/VRStandard"
 		[NoScaleOffset][SingleLineTexture]_DetailNormalMap("Detail Normal", 2D) = "bump" {}
 		_DetailNormalMapScale("Detail Normal Scale", Float) = 1
 		_OcclusionStrength("_OcclusionStrength", Range( 0 , 1)) = 1
-		[Space(20)][Header(BRDF Lut)][Space(10)][Toggle(_BRDFMAP)] BRDFMAP("Enable BRDF map", Float) = 0
-		[NoScaleOffset][SingleLineTexture]g_tBRDFMap("BRDF map", 2D) = "white" {}
 		[Header(Color Mask)][NoScaleOffset][SingleLineTexture]_ColorMask("Color Tint", 2D) = "white" {}
 		_ColorShift1("_ColorShift1", Color) = (1,1,1,1)
 		_ColorShift2("_ColorShift2", Color) = (1,1,1,1)
@@ -59,7 +59,7 @@ Shader "Valve/VRStandard"
 		ZWrite On
 		Cull [_Cull]
 		ZTest LEqual
-		Offset 1 , 1
+		Offset 0 , 0
 		ColorMask RGBA
 		//LOD 100
 		
@@ -428,6 +428,20 @@ Shader "Valve/VRStandard"
 				return _DetailAlbedoMap_ST.xy;
 			}
 			
+			float4 EmissionCalculation540( float4 EmissionMap, float4 EmissionColor, float4 Albedo, float LuhAcceptor )
+			{
+				float4 emissionOutput = EmissionMap * EmissionColor;
+				#if _EMITALBEDO_ON
+				emissionOutput *= Albedo;
+				#endif
+				return emissionOutput;
+			}
+			
+			float4 EmissionFallingOff541( float4 EmissionInput, float3 ViewDir, float3 WorldNormal, float EmissionFalloff )
+			{
+				return EmissionInput * saturate(pow(saturate(dot(ViewDir, WorldNormal)), EmissionFalloff * 2));
+			}
+			
 			float4 ChannelPacker464( float4 MetallicMap, float Metallic, float Smoothness, float LuhAcceptor )
 			{
 				#if(_METALLICTYPE_MAS)
@@ -597,11 +611,11 @@ Shader "Valve/VRStandard"
 				float3 appendResult16_g145 = (float3(temp_output_18_0_g145 , temp_output_18_0_g145 , temp_output_18_0_g145));
 				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g145 ) + appendResult16_g145 ) );
 				#ifdef _USEDETAIL_ON
-				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
+				float4 staticSwitch538 = float4( DetailAlbedoMORE512 , 0.0 );
 				#else
-				float4 staticSwitch199 = staticSwitch293;
+				float4 staticSwitch538 = staticSwitch293;
 				#endif
-				float4 AlbedoDetails488 = staticSwitch199;
+				float4 AlbedoDetails488 = staticSwitch538;
 				
 				float3 unpack99 = UnpackNormalScale( tex2D( _DetailNormalMap, DetailAlbedoUV499.xy ), _DetailNormalMapScale );
 				unpack99.z = lerp( 1, unpack99.z, saturate(_DetailNormalMapScale) );
@@ -613,17 +627,25 @@ Shader "Valve/VRStandard"
 				float3 temp_output_460_0 = BlendNormal( DetailNormal480 , NormalMap477 );
 				float3 Normals486 = temp_output_460_0;
 				
+				float4 EmissionMap540 = tex2D( _EmissionMap, UV_Main492 );
+				float4 EmissionColor540 = _EmissionColor;
 				float4 Colorshiftbool514 = staticSwitch293;
+				float4 Albedo540 = Colorshiftbool514;
 				#ifdef _EMITALBEDO_ON
-				float4 staticSwitch391 = Colorshiftbool514;
+				float staticSwitch391 = 0.0;
 				#else
-				float4 staticSwitch391 = float4(1,1,1,1);
+				float staticSwitch391 = 0.0;
 				#endif
-				float4 temp_output_249_0 = ( tex2D( _EmissionMap, UV_Main492 ) * _EmissionColor * staticSwitch391 );
-				float dotResult3_g146 = dot( ase_worldViewDir , ase_worldNormal );
-				float4 Emission484 = ( temp_output_249_0 * saturate( pow( abs( dotResult3_g146 ) , _EmissionFalloff ) ) );
+				float LuhAcceptor540 = staticSwitch391;
+				float4 localEmissionCalculation540 = EmissionCalculation540( EmissionMap540 , EmissionColor540 , Albedo540 , LuhAcceptor540 );
+				float4 EmissionInput541 = localEmissionCalculation540;
+				float3 ViewDir541 = ase_worldViewDir;
+				float3 WorldNormal541 = ase_worldNormal;
+				float EmissionFalloff541 = _EmissionFalloff;
+				float4 localEmissionFallingOff541 = EmissionFallingOff541( EmissionInput541 , ViewDir541 , WorldNormal541 , EmissionFalloff541 );
+				float4 Emission484 = localEmissionFallingOff541;
 				
-				float4 BakedEmission482 = ( temp_output_249_0 * _BakedMutiplier );
+				float4 BakedEmission482 = ( localEmissionCalculation540 * _BakedMutiplier );
 				
 				float4 MetallicMap464 = tex2D( _MetallicGlossMap, UV_Main492 );
 				float Metallic464 = _Metallic;
@@ -702,8 +724,8 @@ Shader "Valve/VRStandard"
 			
 				half3 albedo3 = AlbedoDetails488.rgb;
 				half3 normalTS = Normals486;
-				half3 emission = Emission484.rgb;
-				half3 emissionbaked = BakedEmission482.rgb;
+				half3 emission = Emission484.xyz;
+				half3 emissionbaked = BakedEmission482.xyz;
 			
 			// Begin Injection NORMAL_MAP from Injection_NormalMaps.hlsl ----------------------------------------------------------
 				//normalMap = SAMPLE_TEXTURE2D(_BumpMap, sampler_BaseMap, uv_main);
@@ -2017,6 +2039,20 @@ Shader "Valve/VRStandard"
 				return _DetailAlbedoMap_ST.xy;
 			}
 			
+			float4 EmissionCalculation540( float4 EmissionMap, float4 EmissionColor, float4 Albedo, float LuhAcceptor )
+			{
+				float4 emissionOutput = EmissionMap * EmissionColor;
+				#if _EMITALBEDO_ON
+				emissionOutput *= Albedo;
+				#endif
+				return emissionOutput;
+			}
+			
+			float4 EmissionFallingOff541( float4 EmissionInput, float3 ViewDir, float3 WorldNormal, float EmissionFalloff )
+			{
+				return EmissionInput * saturate(pow(saturate(dot(ViewDir, WorldNormal)), EmissionFalloff * 2));
+			}
+			
 
 			v2f vert(appdata v  )
 			{
@@ -2111,23 +2147,31 @@ Shader "Valve/VRStandard"
 				float3 appendResult16_g145 = (float3(temp_output_18_0_g145 , temp_output_18_0_g145 , temp_output_18_0_g145));
 				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g145 ) + appendResult16_g145 ) );
 				#ifdef _USEDETAIL_ON
-				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
+				float4 staticSwitch538 = float4( DetailAlbedoMORE512 , 0.0 );
 				#else
-				float4 staticSwitch199 = staticSwitch293;
+				float4 staticSwitch538 = staticSwitch293;
 				#endif
-				float4 AlbedoDetails488 = staticSwitch199;
+				float4 AlbedoDetails488 = staticSwitch538;
 				
+				float4 EmissionMap540 = tex2D( _EmissionMap, UV_Main492 );
+				float4 EmissionColor540 = _EmissionColor;
 				float4 Colorshiftbool514 = staticSwitch293;
+				float4 Albedo540 = Colorshiftbool514;
 				#ifdef _EMITALBEDO_ON
-				float4 staticSwitch391 = Colorshiftbool514;
+				float staticSwitch391 = 0.0;
 				#else
-				float4 staticSwitch391 = float4(1,1,1,1);
+				float staticSwitch391 = 0.0;
 				#endif
-				float4 temp_output_249_0 = ( tex2D( _EmissionMap, UV_Main492 ) * _EmissionColor * staticSwitch391 );
-				float dotResult3_g146 = dot( ase_worldViewDir , ase_worldNormal );
-				float4 Emission484 = ( temp_output_249_0 * saturate( pow( abs( dotResult3_g146 ) , _EmissionFalloff ) ) );
+				float LuhAcceptor540 = staticSwitch391;
+				float4 localEmissionCalculation540 = EmissionCalculation540( EmissionMap540 , EmissionColor540 , Albedo540 , LuhAcceptor540 );
+				float4 EmissionInput541 = localEmissionCalculation540;
+				float3 ViewDir541 = ase_worldViewDir;
+				float3 WorldNormal541 = ase_worldNormal;
+				float EmissionFalloff541 = _EmissionFalloff;
+				float4 localEmissionFallingOff541 = EmissionFallingOff541( EmissionInput541 , ViewDir541 , WorldNormal541 , EmissionFalloff541 );
+				float4 Emission484 = localEmissionFallingOff541;
 				
-				float4 BakedEmission482 = ( temp_output_249_0 * _BakedMutiplier );
+				float4 BakedEmission482 = ( localEmissionCalculation540 * _BakedMutiplier );
 				
 				float _Cull509 = ( _Cull * 0.0 );
 				#ifdef VERTEXILLUMINATION_ON
@@ -2162,8 +2206,8 @@ Shader "Valve/VRStandard"
 				//metaInput.Emission = emission.rgb;
 			
 				metaInput.Albedo = AlbedoDetails488.rgb;
-				half3 emission = Emission484.rgb;
-				half3 bakedemission = BakedEmission482.rgb;
+				half3 emission = Emission484.xyz;
+				half3 bakedemission = BakedEmission482.xyz;
 				metaInput.Emission = bakedemission.rgb;
 				#ifdef EDITOR_VISUALIZATION
 					metaInput.VizUV = i.VizUV.xy;
