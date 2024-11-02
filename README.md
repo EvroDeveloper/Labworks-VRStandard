@@ -25,3 +25,6 @@ https://github.com/EvroDeveloper/Labworks-VRStandard.git
  - Emission and Albedo Mult (if needed, used on a couple of BW materials)
  - Transparency (Separate Shaders for Transparent and a couple other forks)
  - Render Face Culling (Back, Front, or Both)
+
+   ![image](https://github.com/user-attachments/assets/3382c035-8c07-4ec6-b46f-915867c9df72)
+
