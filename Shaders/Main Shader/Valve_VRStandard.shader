@@ -3,17 +3,16 @@ Shader "Valve/VRStandard"
 	Properties
 	{
 		[HideInInspector] _AlphaCutoff("Alpha Cutoff ", Range(0, 1)) = 0.5
-		[ASEBegin]_Cutoff("Alpha Clipping", Range( 0 , 1)) = 0.5
-		_MainTex("Main Tex", 2D) = "white" {}
+		[ASEBegin]_MainTex("Main Tex", 2D) = "white" {}
 		_Color("Main Color", Color) = (1,1,1,0)
 		[NoScaleOffset][SingleLineTexture]_BumpMap("Normal Map", 2D) = "bump" {}
 		_BumpScale("Normal Scale", Range( 0 , 1)) = 1
 		_NormalToOcclusion("Normal To Occlusion", Range( 0 , 1)) = 0
-		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK)] _MetallicType("Metallic Type", Float) = 0
+		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK,Alloy,ORM,MAES,MRA)] _MetallicType("Metallic Type", Float) = 0
 		[NoScaleOffset][SingleLineTexture]_MetallicGlossMap("Metallic Map", 2D) = "white" {}
 		[HideInInspector]_Glossiness("Smoothnes", Range( 0 , 1.5)) = 1
-		_Metallic("Metallic", Range( 0 , 2)) = 1
 		_Specmod("Smoothness Scale", Range( 0 , 2)) = 0
+		_Metallic("Metallic", Range( 0 , 2)) = 1
 		[Space(20)][Header(BRDF Lut)][Space(10)][Toggle(_BRDFMAP)] BRDFMAP("Enable BRDF map", Float) = 0
 		[NoScaleOffset][SingleLineTexture]g_tBRDFMap("BRDF map", 2D) = "white" {}
 		[Header(Parallax)][NoScaleOffset][SingleLineTexture]_ParallaxMap("Height Map", 2D) = "white" {}
@@ -84,7 +83,6 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
-			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 999999
 			#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def
 			#define unity_ColorSpaceDouble half4(2.0, 2.0, 2.0, 2.0)//ASE Color Space Def
@@ -239,7 +237,7 @@ Shader "Valve/VRStandard"
 			#pragma shader_feature_local _COLORSHIFT
 			#pragma shader_feature_local _VERTEXTINT_ON
 			#pragma shader_feature_local _EMITALBEDO_ON
-			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK
+			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK _METALLICTYPE_ALLOY _METALLICTYPE_ORM _METALLICTYPE_MAES _METALLICTYPE_MRA
 			#pragma shader_feature_local _VERTEXOCCLUSION_ON
 			#pragma shader_feature_local _USEOCCLUSION_ON
 			#pragma shader_feature_local VERTEXILLUMINATION_ON
@@ -305,18 +303,17 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
-				float _OcclusionStrength;
 				float _NormalToOcclusion;
 				float _Specmod;
 				float _Glossiness;
 				float _Metallic;
 				float _BumpScale;
 				float _EmissionFalloff;
-				float _Cull;
+				float _OcclusionStrength;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _BakedMutiplier;
-				float _Cutoff;
+				float _Cull;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -448,6 +445,13 @@ Shader "Valve/VRStandard"
 				return MetallicMap;
 				#elif(_METALLICTYPE_RMA)
 				return float4(MetallicMap.g,MetallicMap.b,(1-MetallicMap.r),0);
+				#elif(_METALLICTYPE_MRA)
+				return float4(MetallicMap.r,MetallicMap.b,(1-MetallicMap.g),0);
+				#elif(_METALLICTYPE_ALLOY)
+				return float4(MetallicMap.r,MetallicMap.g,(1-MetallicMap.a),0);
+				#elif(_METALLICTYPE_ORM)
+				return
+				float4(MetallicMap.b,MetallicMap.r,(1-MetallicMap.g),0);
 				#elif(_METALLICTYPE_MAES)
 				return MetallicMap.rgab;
 				#elif(_METALLICTYPE_FLOATS)
@@ -587,8 +591,7 @@ Shader "Valve/VRStandard"
 				float4 staticSwitch296 = color297;
 				#endif
 				float4 albedooutput516 = ( tex2DNode9 * _Color * staticSwitch296 );
-				float4 tex2DNode282 = tex2D( _ColorMask, UV_Main492 );
-				float4 ColorMask454 = tex2DNode282;
+				float4 ColorMask454 = tex2D( _ColorMask, UV_Main492 );
 				float4 ColorShift1454 = _ColorShift1;
 				float4 ColorShift2454 = _ColorShift2;
 				float4 ColorShift3454 = _ColorShift3;
@@ -657,6 +660,14 @@ Shader "Valve/VRStandard"
 				#elif defined(_METALLICTYPE_RMA)
 				float staticSwitch157 = 0.0;
 				#elif defined(_METALLICTYPE_MASK)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ALLOY)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ORM)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MAES)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MRA)
 				float staticSwitch157 = 0.0;
 				#else
 				float staticSwitch157 = 0.0;
@@ -739,7 +750,7 @@ Shader "Valve/VRStandard"
 				half smoothness = Smoothness525;
 				half ao = Occlusion490;
 				half alpha = alphaoutput523;
-				half alphaclip = _Cutoff;
+				half alphaclip = half(0);
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -903,7 +914,6 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
-			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 999999
 
 			#pragma vertex vert
@@ -959,18 +969,17 @@ Shader "Valve/VRStandard"
 			float4 _ColorShift3;
 			float4 _DetailAlbedoMap_ST;
 			float4 _EmissionColor;
-			float _OcclusionStrength;
 			float _NormalToOcclusion;
 			float _Specmod;
 			float _Glossiness;
 			float _Metallic;
 			float _BumpScale;
 			float _EmissionFalloff;
-			float _Cull;
+			float _OcclusionStrength;
 			float _DetailNormalMapScale;
 			float _Parallax;
 			float _BakedMutiplier;
-			float _Cutoff;
+			float _Cull;
 			CBUFFER_END
 
 
@@ -1121,7 +1130,7 @@ Shader "Valve/VRStandard"
 			    
 			
 				half alpha = alphaoutput523;
-				half alphaclip = _Cutoff;
+				half alphaclip = half(0);
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1161,7 +1170,6 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
-			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 999999
 
 			#pragma vertex vert
@@ -1241,18 +1249,17 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
-				float _OcclusionStrength;
 				float _NormalToOcclusion;
 				float _Specmod;
 				float _Glossiness;
 				float _Metallic;
 				float _BumpScale;
 				float _EmissionFalloff;
-				float _Cull;
+				float _OcclusionStrength;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _BakedMutiplier;
-				float _Cutoff;
+				float _Cull;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -1476,7 +1483,7 @@ Shader "Valve/VRStandard"
 				normals = half4(EncodeWSNormalForNormalsTex(normalWS),0);
 			// End Injection FRAG_NORMALS from Injection_NormalMap_DepthNormals.hlsl ----------------------------------------------------------
 				half alpha = alphaoutput523;
-				half alphaclip = _Cutoff;
+				half alphaclip = half(0);
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1521,7 +1528,6 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
-			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 999999
 
 			#pragma vertex vert
@@ -1583,18 +1589,17 @@ Shader "Valve/VRStandard"
 			float4 _ColorShift3;
 			float4 _DetailAlbedoMap_ST;
 			float4 _EmissionColor;
-			float _OcclusionStrength;
 			float _NormalToOcclusion;
 			float _Specmod;
 			float _Glossiness;
 			float _Metallic;
 			float _BumpScale;
 			float _EmissionFalloff;
-			float _Cull;
+			float _OcclusionStrength;
 			float _DetailNormalMapScale;
 			float _Parallax;
 			float _BakedMutiplier;
-			float _Cutoff;
+			float _Cull;
 			CBUFFER_END
 
 
@@ -1769,7 +1774,7 @@ Shader "Valve/VRStandard"
 			    
 
 				half alpha = alphaoutput523;
-				half alphaclip = _Cutoff;
+				half alphaclip = half(0);
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1814,7 +1819,6 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
-			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 999999
 			#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def
 			#define unity_ColorSpaceDouble half4(2.0, 2.0, 2.0, 2.0)//ASE Color Space Def
@@ -1887,18 +1891,17 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
-				float _OcclusionStrength;
 				float _NormalToOcclusion;
 				float _Specmod;
 				float _Glossiness;
 				float _Metallic;
 				float _BumpScale;
 				float _EmissionFalloff;
-				float _Cull;
+				float _OcclusionStrength;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _BakedMutiplier;
-				float _Cutoff;
+				float _Cull;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -2123,8 +2126,7 @@ Shader "Valve/VRStandard"
 				float4 staticSwitch296 = color297;
 				#endif
 				float4 albedooutput516 = ( tex2DNode9 * _Color * staticSwitch296 );
-				float4 tex2DNode282 = tex2D( _ColorMask, UV_Main492 );
-				float4 ColorMask454 = tex2DNode282;
+				float4 ColorMask454 = tex2D( _ColorMask, UV_Main492 );
 				float4 ColorShift1454 = _ColorShift1;
 				float4 ColorShift2454 = _ColorShift2;
 				float4 ColorShift3454 = _ColorShift3;
@@ -2215,7 +2217,7 @@ Shader "Valve/VRStandard"
 				#endif
 			
 				half alpha = alphaoutput523;
-				half alphaclip = _Cutoff;
+				half alphaclip = half(0);
 				half alphaclipthresholdshadow = half(0);
 				#if defined(_ALPHATEST_ON)
 					clip(alpha - alphaclip);

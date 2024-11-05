@@ -9,11 +9,11 @@ Shader "Valve/VRStandard Fluoresence"
 		[NoScaleOffset][SingleLineTexture]_BumpMap("Normal Map", 2D) = "bump" {}
 		_BumpScale("Normal Scale", Range( 0 , 1)) = 1
 		_NormalToOcclusion("Normal To Occlusion", Range( 0 , 1)) = 0
-		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK)] _MetallicType("Metallic Type", Float) = 0
+		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK,Alloy,ORM,MAES,MRA)] _MetallicType("Metallic Type", Float) = 0
 		[NoScaleOffset][SingleLineTexture]_MetallicGlossMap("Metallic Map", 2D) = "white" {}
 		[HideInInspector]_Glossiness("Smoothnes", Range( 0 , 1.5)) = 1
-		_Specmod("Smoothness Scale", Range( 0 , 2)) = 0
 		_Metallic("Metallic", Range( 0 , 2)) = 1
+		_Specmod("Smoothness Scale", Range( 0 , 2)) = 0
 		[Header(Parallax)][NoScaleOffset][SingleLineTexture]_ParallaxMap("Height Map", 2D) = "white" {}
 		_Parallax("Height Scale", Float) = 0
 		[Header(Emission)][NoScaleOffset][SingleLineTexture]_EmissionMap("Emission Map", 2D) = "white" {}
@@ -31,7 +31,8 @@ Shader "Valve/VRStandard Fluoresence"
 		_OcclusionStrength("_OcclusionStrength", Range( 0 , 1)) = 1
 		[Space(20)][Header(BRDF Lut)][Space(10)][Toggle(_BRDFMAP)] BRDFMAP("Enable BRDF map", Float) = 0
 		[NoScaleOffset][SingleLineTexture]g_tBRDFMap("BRDF map", 2D) = "white" {}
-		[Header(Fluoresence)]_FluoresenceTint("Fluoresence Tint", Color) = (1,1,1,1)
+		[Header(Fluorescence)][Toggle]_UseFluoresence("Use Fluoresence", Float) = 0
+		_FluoresenceTint("Fluoresence Tint", Color) = (1,1,1,1)
 		[NoScaleOffset]_FluoresenceMap("Fluoresence Map", 2D) = "white" {}
 		_Intensity("Intensity", Range( 0 , 1)) = 0
 		_Absorbance("Absorbance", Color) = (0.5882353,0.7843137,0.8666667,0)
@@ -42,7 +43,6 @@ Shader "Valve/VRStandard Fluoresence"
 		[Toggle(_VERTEXTINT_ON)] _VertexTint("Vertex Tint", Float) = 0
 		[Toggle(VERTEXILLUMINATION_ON)] VertexIllumination("VertexIllumination", Float) = 0
 		[Toggle(_VERTEXOCCLUSION_ON)] _VertexOcclusion("Vertex Occlusion", Float) = 0
-		[Toggle]_UseFluoresence("Use Fluoresence", Float) = 0
 		[ASEEnd][Toggle(_COLORSHIFT)] _UseColorMask("Use ColorMask", Float) = 0
 		[HideInInspector]_Cull("cull", Float) = 0
 		[HideInInspector] _texcoord( "", 2D ) = "white" {}
@@ -240,7 +240,7 @@ Shader "Valve/VRStandard Fluoresence"
 			#pragma shader_feature_local _COLORSHIFT
 			#pragma shader_feature_local _VERTEXTINT_ON
 			#pragma shader_feature_local _EMITALBEDO_ON
-			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK
+			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK _METALLICTYPE_ALLOY _METALLICTYPE_ORM _METALLICTYPE_MAES _METALLICTYPE_MRA
 			#pragma shader_feature_local _VERTEXOCCLUSION_ON
 			#pragma shader_feature_local _USEOCCLUSION_ON
 			#pragma shader_feature_local VERTEXILLUMINATION_ON
@@ -295,17 +295,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -316,7 +317,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -439,12 +439,19 @@ Shader "Valve/VRStandard Fluoresence"
 				return MetallicMap;
 				#elif(_METALLICTYPE_RMA)
 				return float4(MetallicMap.g,MetallicMap.b,(1-MetallicMap.r),0);
+				#elif(_METALLICTYPE_MRA)
+				return float4(MetallicMap.r,MetallicMap.b,(1-MetallicMap.g),0);
+				#elif(_METALLICTYPE_ALLOY)
+				return float4(MetallicMap.r,MetallicMap.g,(1-MetallicMap.a),0);
+				#elif(_METALLICTYPE_ORM)
+				return
+				float4(MetallicMap.b,MetallicMap.r,(1-MetallicMap.g),0);
 				#elif(_METALLICTYPE_MAES)
 				return MetallicMap.rgab;
 				#elif(_METALLICTYPE_FLOATS)
 				return float4(Metallic,1,Smoothness,0);
 				#elif(_METALLICTYPE_MASK)
-				return float4(MetallicMap.r, 1, MetallicMap.a,MetallicMap.g);
+				return MetallicMap.rgab;
 				#else
 				return float4(MetallicMap.r,1,MetallicMap.a,0);
 				#endif
@@ -701,10 +708,10 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 uvs4_DetailAlbedoMap = IN.ase_texcoord8;
 				uvs4_DetailAlbedoMap.xy = IN.ase_texcoord8.xy * _DetailAlbedoMap_ST.xy + _DetailAlbedoMap_ST.zw;
 				float4 DetailAlbedoUV499 = ( ( ( float4( OffsetPOM153, 0.0 , 0.0 ) - uvs4_MainTex ) * float4( localReturnDetailAlbedo446, 0.0 , 0.0 ) ) + uvs4_DetailAlbedoMap );
-				float temp_output_9_0_g145 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
-				float temp_output_18_0_g145 = ( 1.0 - temp_output_9_0_g145 );
-				float3 appendResult16_g145 = (float3(temp_output_18_0_g145 , temp_output_18_0_g145 , temp_output_18_0_g145));
-				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g145 ) + appendResult16_g145 ) );
+				float temp_output_9_0_g152 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
+				float temp_output_18_0_g152 = ( 1.0 - temp_output_9_0_g152 );
+				float3 appendResult16_g152 = (float3(temp_output_18_0_g152 , temp_output_18_0_g152 , temp_output_18_0_g152));
+				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g152 ) + appendResult16_g152 ) );
 				#ifdef _USEDETAIL_ON
 				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
 				#else
@@ -729,8 +736,8 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 staticSwitch391 = float4(1,1,1,1);
 				#endif
 				float4 temp_output_249_0 = ( tex2D( _EmissionMap, UV_Main492 ) * _EmissionColor * staticSwitch391 );
-				float dotResult3_g146 = dot( WorldViewDirection , WorldNormal );
-				float4 Emission484 = ( temp_output_249_0 * saturate( pow( abs( dotResult3_g146 ) , _EmissionFalloff ) ) );
+				float dotResult3_g151 = dot( WorldViewDirection , WorldNormal );
+				float4 Emission484 = ( temp_output_249_0 * saturate( pow( abs( dotResult3_g151 ) , _EmissionFalloff ) ) );
 				
 				float4 BakedEmission482 = ( temp_output_249_0 * _BakedMutiplier );
 				
@@ -744,6 +751,14 @@ Shader "Valve/VRStandard Fluoresence"
 				#elif defined(_METALLICTYPE_RMA)
 				float staticSwitch157 = 0.0;
 				#elif defined(_METALLICTYPE_MASK)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ALLOY)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ORM)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MAES)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MRA)
 				float staticSwitch157 = 0.0;
 				#else
 				float staticSwitch157 = 0.0;
@@ -1109,17 +1124,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -1130,7 +1146,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -1534,17 +1549,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -1555,7 +1571,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -1947,17 +1962,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -1968,7 +1984,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -2293,10 +2308,10 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 uvs4_DetailAlbedoMap = IN.ase_texcoord4;
 				uvs4_DetailAlbedoMap.xy = IN.ase_texcoord4.xy * _DetailAlbedoMap_ST.xy + _DetailAlbedoMap_ST.zw;
 				float4 DetailAlbedoUV499 = ( ( ( float4( OffsetPOM153, 0.0 , 0.0 ) - uvs4_MainTex ) * float4( localReturnDetailAlbedo446, 0.0 , 0.0 ) ) + uvs4_DetailAlbedoMap );
-				float temp_output_9_0_g145 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
-				float temp_output_18_0_g145 = ( 1.0 - temp_output_9_0_g145 );
-				float3 appendResult16_g145 = (float3(temp_output_18_0_g145 , temp_output_18_0_g145 , temp_output_18_0_g145));
-				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g145 ) + appendResult16_g145 ) );
+				float temp_output_9_0_g152 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
+				float temp_output_18_0_g152 = ( 1.0 - temp_output_9_0_g152 );
+				float3 appendResult16_g152 = (float3(temp_output_18_0_g152 , temp_output_18_0_g152 , temp_output_18_0_g152));
+				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g152 ) + appendResult16_g152 ) );
 				#ifdef _USEDETAIL_ON
 				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
 				#else
@@ -2530,17 +2545,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -2551,7 +2567,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -2863,10 +2878,10 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 uvs4_DetailAlbedoMap = IN.ase_texcoord2;
 				uvs4_DetailAlbedoMap.xy = IN.ase_texcoord2.xy * _DetailAlbedoMap_ST.xy + _DetailAlbedoMap_ST.zw;
 				float4 DetailAlbedoUV499 = ( ( ( float4( OffsetPOM153, 0.0 , 0.0 ) - uvs4_MainTex ) * float4( localReturnDetailAlbedo446, 0.0 , 0.0 ) ) + uvs4_DetailAlbedoMap );
-				float temp_output_9_0_g145 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
-				float temp_output_18_0_g145 = ( 1.0 - temp_output_9_0_g145 );
-				float3 appendResult16_g145 = (float3(temp_output_18_0_g145 , temp_output_18_0_g145 , temp_output_18_0_g145));
-				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g145 ) + appendResult16_g145 ) );
+				float temp_output_9_0_g152 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
+				float temp_output_18_0_g152 = ( 1.0 - temp_output_9_0_g152 );
+				float3 appendResult16_g152 = (float3(temp_output_18_0_g152 , temp_output_18_0_g152 , temp_output_18_0_g152));
+				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g152 ) + appendResult16_g152 ) );
 				#ifdef _USEDETAIL_ON
 				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
 				#else
@@ -2972,17 +2987,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -2993,7 +3009,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
@@ -3346,19 +3361,19 @@ Shader "Valve/VRStandard Fluoresence"
 			ENDHLSL
 		}
 
-				/*ase_pass*/
+				
 		Pass
 		{
 			
 			Name "GBuffer"
-			Tags{"LightMode" = "None" }
+			Tags { "LightMode"="None" }
 			
-			Blend One Zero
+			Blend One Zero, One Zero
 			ColorMask RGBA
-			/*ase_stencil*/
+			
 
 			HLSLPROGRAM
-/*ase_pragma_before*/
+#define _NORMAL_DROPOFF_TS 1#pragma multi_compile_fog#define ASE_FOG 1#pragma multi_compile_fragment _ _VOLUMETRICS_ENABLED#define _FLUORESCENCE 1#define _EMISSION#define _ALPHATEST_ON 1#define _NORMALMAP 1#define ASE_SRP_VERSION 999999#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def#define unity_ColorSpaceDouble half4(2.0, 2.0, 2.0, 2.0)//ASE Color Space Def#else // Linear values//ASE Color Space Def#define unity_ColorSpaceDouble half4(4.59479380, 4.59479380, 4.59479380, 2.0)//ASE Color Space Def#endif//ASE Color Space Def
 #if FALSE
 			#pragma multi_compile _ LIGHTMAP_ON
 			#pragma multi_compile _ DYNAMICLIGHTMAP_ON
@@ -3394,7 +3409,21 @@ Shader "Valve/VRStandard Fluoresence"
 			    #define ENABLE_TERRAIN_PERPIXEL_NORMAL
 			#endif
 
-			/*ase_pragma*/
+			#define ASE_NEEDS_FRAG_WORLD_TANGENT
+			#define ASE_NEEDS_FRAG_WORLD_NORMAL
+			#define ASE_NEEDS_FRAG_WORLD_BITANGENT
+			#define ASE_NEEDS_FRAG_WORLD_VIEW_DIR
+			#define ASE_NEEDS_FRAG_COLOR
+			#pragma shader_feature_local _BRDFMAP
+			#pragma shader_feature_local _USEDETAIL_ON
+			#pragma shader_feature_local _COLORSHIFT
+			#pragma shader_feature_local _VERTEXTINT_ON
+			#pragma shader_feature_local _EMITALBEDO_ON
+			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK _METALLICTYPE_ALLOY _METALLICTYPE_ORM _METALLICTYPE_MAES _METALLICTYPE_MRA
+			#pragma shader_feature_local _VERTEXOCCLUSION_ON
+			#pragma shader_feature_local _USEOCCLUSION_ON
+			#pragma shader_feature_local VERTEXILLUMINATION_ON
+
 
 			struct VertexInput
 			{
@@ -3404,7 +3433,7 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 texcoord : TEXCOORD0;
 				float4 texcoord1 : TEXCOORD1;
 				float4 texcoord2 : TEXCOORD2;
-				/*ase_vdata:p=p;n=n;t=t;uv0=tc0;uv1=tc1;uv2=tc2*/
+				float4 ase_color : COLOR;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -3425,13 +3454,37 @@ Shader "Valve/VRStandard Fluoresence"
 				#if defined(DYNAMICLIGHTMAP_ON)
 				float2 dynamicLightmapUV : TEXCOORD7;
 				#endif
-				/*ase_interp(8,):sp=sp;sc=tc2;wn.xyz=tc3.xyz;wt.xyz=tc4.xyz;wbt.xyz=tc5.xyz;wp.x=tc3.w;wp.y=tc4.w;wp.z=tc5.w;spu=tc6*/
+				float4 ase_texcoord8 : TEXCOORD8;
+				float4 ase_color : COLOR;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			/*ase_srp_batcher*/
+			float4 _MainTex_ST;
+			float4 _FluoresenceTint;
+			float4 _EmissionColor;
+			float4 _DetailAlbedoMap_ST;
+			float4 _ColorShift3;
+			float4 _Absorbance;
+			float4 _ColorShift1;
+			float4 _Color;
+			float4 _ParallaxMap_ST;
+			float4 _ColorShift2;
+			float _Intensity;
+			float _Parallax;
+			float _Cutoff;
+			float _Cull;
+			float _OcclusionStrength;
+			float _NormalToOcclusion;
+			float _Glossiness;
+			float _Metallic;
+			float _BakedMutiplier;
+			float _UseFluoresence;
+			float _BumpScale;
+			float _DetailNormalMapScale;
+			float _Specmod;
+			float _EmissionFalloff;
 			#ifdef _TRANSMISSION_ASE
 				float _TransmissionShadow;
 			#endif
@@ -3452,30 +3505,151 @@ Shader "Valve/VRStandard Fluoresence"
 				float _TessMaxDisp;
 			#endif
 			CBUFFER_END
-			/*ase_globals*/
+			sampler2D _MainTex;
+			sampler2D _ParallaxMap;
+			sampler2D _ColorMask;
+			sampler2D _DetailAlbedoMap;
+			sampler2D _DetailMask;
+			sampler2D _DetailNormalMap;
+			sampler2D _BumpMap;
+			sampler2D _EmissionMap;
+			sampler2D _MetallicGlossMap;
+			sampler2D _OcclusionMap;
 
-			/*ase_funcs*/
 
-			VertexOutput VertexFunction( VertexInput v /*ase_vert_input*/ )
+			inline float2 POM( sampler2D heightMap, float2 uvs, float2 dx, float2 dy, float3 normalWorld, float3 viewWorld, float3 viewDirTan, int minSamples, int maxSamples, float parallax, float refPlane, float2 tilling, float2 curv, int index )
+			{
+				float3 result = 0;
+				int stepIndex = 0;
+				int numSteps = ( int )lerp( (float)maxSamples, (float)minSamples, saturate( dot( normalWorld, viewWorld ) ) );
+				float layerHeight = 1.0 / numSteps;
+				float2 plane = parallax * ( viewDirTan.xy / viewDirTan.z );
+				uvs.xy += refPlane * plane;
+				float2 deltaTex = -plane * layerHeight;
+				float2 prevTexOffset = 0;
+				float prevRayZ = 1.0f;
+				float prevHeight = 0.0f;
+				float2 currTexOffset = deltaTex;
+				float currRayZ = 1.0f - layerHeight;
+				float currHeight = 0.0f;
+				float intersection = 0;
+				float2 finalTexOffset = 0;
+				while ( stepIndex < numSteps + 1 )
+				{
+				 	currHeight = tex2Dgrad( heightMap, uvs + currTexOffset, dx, dy ).r;
+				 	if ( currHeight > currRayZ )
+				 	{
+				 	 	stepIndex = numSteps + 1;
+				 	}
+				 	else
+				 	{
+				 	 	stepIndex++;
+				 	 	prevTexOffset = currTexOffset;
+				 	 	prevRayZ = currRayZ;
+				 	 	prevHeight = currHeight;
+				 	 	currTexOffset += deltaTex;
+				 	 	currRayZ -= layerHeight;
+				 	}
+				}
+				int sectionSteps = 2;
+				int sectionIndex = 0;
+				float newZ = 0;
+				float newHeight = 0;
+				while ( sectionIndex < sectionSteps )
+				{
+				 	intersection = ( prevHeight - prevRayZ ) / ( prevHeight - currHeight + currRayZ - prevRayZ );
+				 	finalTexOffset = prevTexOffset + intersection * deltaTex;
+				 	newZ = prevRayZ - intersection * layerHeight;
+				 	newHeight = tex2Dgrad( heightMap, uvs + finalTexOffset, dx, dy ).r;
+				 	if ( newHeight > newZ )
+				 	{
+				 	 	currTexOffset = finalTexOffset;
+				 	 	currHeight = newHeight;
+				 	 	currRayZ = newZ;
+				 	 	deltaTex = intersection * deltaTex;
+				 	 	layerHeight = intersection * layerHeight;
+				 	}
+				 	else
+				 	{
+				 	 	prevTexOffset = finalTexOffset;
+				 	 	prevHeight = newHeight;
+				 	 	prevRayZ = newZ;
+				 	 	deltaTex = ( 1 - intersection ) * deltaTex;
+				 	 	layerHeight = ( 1 - intersection ) * layerHeight;
+				 	}
+				 	sectionIndex++;
+				}
+				return uvs.xy + finalTexOffset;
+			}
+			
+			float3 ColorShift454( float4 ColorMask, float4 ColorShift1, float4 ColorShift2, float4 ColorShift3 )
+			{
+				#if ( _COLORSHIFT )
+				float3 ColorMaskTex = 1 - ColorMask.rgb ;
+				float3 ColorShifter = max(ColorShift1.rgb, ColorMaskTex.rrr) * max(ColorShift2.rgb, ColorMaskTex.ggg) * max(ColorShift3.rgb, ColorMaskTex.bbb);
+				return ColorShifter;
+				#else
+				return float3(0, 0, 0);
+				#endif
+			}
+			
+			float2 ReturnDetailAlbedo446( float In0 )
+			{
+				return _DetailAlbedoMap_ST.xy;
+			}
+			
+			float4 ChannelPacker464( float4 MetallicMap, float Metallic, float Smoothness, float LuhAcceptor )
+			{
+				#if(_METALLICTYPE_MAS)
+				return MetallicMap;
+				#elif(_METALLICTYPE_RMA)
+				return float4(MetallicMap.g,MetallicMap.b,(1-MetallicMap.r),0);
+				#elif(_METALLICTYPE_MRA)
+				return float4(MetallicMap.r,MetallicMap.b,(1-MetallicMap.g),0);
+				#elif(_METALLICTYPE_ALLOY)
+				return float4(MetallicMap.r,MetallicMap.g,(1-MetallicMap.a),0);
+				#elif(_METALLICTYPE_ORM)
+				return
+				float4(MetallicMap.b,MetallicMap.r,(1-MetallicMap.g),0);
+				#elif(_METALLICTYPE_MAES)
+				return MetallicMap.rgab;
+				#elif(_METALLICTYPE_FLOATS)
+				return float4(Metallic,1,Smoothness,0);
+				#elif(_METALLICTYPE_MASK)
+				return MetallicMap.rgab;
+				#else
+				return float4(MetallicMap.r,1,MetallicMap.a,0);
+				#endif
+			}
+			
+			float NormaltoOcclusion458( float3 vNormalTs, float NormalToOcclusion )
+			{
+				float2 normalABS =  abs(vNormalTs.xy * vNormalTs.xy) ;
+				return lerp(1,   (1 - (normalABS.x + normalABS.y) ) * (vNormalTs.z ), NormalToOcclusion);
+			}
+			
+
+			VertexOutput VertexFunction( VertexInput v  )
 			{
 				VertexOutput o = (VertexOutput)0;
 				UNITY_SETUP_INSTANCE_ID(v);
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-				/*ase_vert_code:v=VertexInput;o=VertexOutput*/
+				o.ase_texcoord8 = v.texcoord;
+				o.ase_color = v.ase_color;
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = v.vertex.xyz;
 				#else
 					float3 defaultVertexValue = float3(0, 0, 0);
 				#endif
-				float3 vertexValue = /*ase_vert_out:Vertex Offset;Float3;8;-1;_Vertex*/defaultVertexValue/*end*/;
+				float3 vertexValue = defaultVertexValue;
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					v.vertex.xyz = vertexValue;
 				#else
 					v.vertex.xyz += vertexValue;
 				#endif
-				v.ase_normal = /*ase_vert_out:Vertex Normal;Float3;10;-1;_Normal*/v.ase_normal/*end*/;
+				v.ase_normal = v.ase_normal;
 
 				float3 positionWS = TransformObjectToWorld( v.vertex.xyz );
 				float3 positionVS = TransformWorldToView( positionWS );
@@ -3530,7 +3704,8 @@ Shader "Valve/VRStandard Fluoresence"
 				float4 texcoord : TEXCOORD0;
 				float4 texcoord1 : TEXCOORD1;
 				float4 texcoord2 : TEXCOORD2;
-				/*ase_vcontrol*/
+				float4 ase_color : COLOR;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -3551,7 +3726,7 @@ Shader "Valve/VRStandard Fluoresence"
 				o.texcoord = v.texcoord;
 				o.texcoord1 = v.texcoord1;
 				o.texcoord2 = v.texcoord2;
-				/*ase_control_code:v=VertexInput;o=VertexControl*/
+				o.ase_color = v.ase_color;
 				return o;
 			}
 
@@ -3594,7 +3769,7 @@ Shader "Valve/VRStandard Fluoresence"
 				o.texcoord = patch[0].texcoord * bary.x + patch[1].texcoord * bary.y + patch[2].texcoord * bary.z;
 				o.texcoord1 = patch[0].texcoord1 * bary.x + patch[1].texcoord1 * bary.y + patch[2].texcoord1 * bary.z;
 				o.texcoord2 = patch[0].texcoord2 * bary.x + patch[1].texcoord2 * bary.y + patch[2].texcoord2 * bary.z;
-				/*ase_domain_code:patch=VertexControl;o=VertexInput;bary=SV_DomainLocation*/
+				o.ase_color = patch[0].ase_color * bary.x + patch[1].ase_color * bary.y + patch[2].ase_color * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -3621,7 +3796,7 @@ Shader "Valve/VRStandard Fluoresence"
 								#ifdef ASE_DEPTH_WRITE_ON
 								,out float outputDepth : ASE_SV_DEPTH
 								#endif
-								/*ase_frag_input*/ )
+								 )
 			{
 				UNITY_SETUP_INSTANCE_ID(IN);
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
@@ -3659,24 +3834,147 @@ Shader "Valve/VRStandard Fluoresence"
 	
 				WorldViewDirection = SafeNormalize( WorldViewDirection );
 
-				/*ase_frag_code:IN=VertexOutput*/
-				float3 Albedo = /*ase_frag_out:Albedo;Float3;0;-1;_Albedo*/float3(0.5, 0.5, 0.5)/*end*/;
-				float3 Normal = /*ase_frag_out:Normal;Float3;1;-1;_FragNormal*/float3(0, 0, 1)/*end*/;
-				float3 Emission = /*ase_frag_out:Emission;Float3;2;-1;_Emission*/0/*end*/;
-				float3 Specular = /*ase_frag_out:Specular;Float3;9;-1;_Specular*/0.5/*end*/;
-				float Metallic = /*ase_frag_out:Metallic;Float;3;-1;_Metallic*/0/*end*/;
-				float Smoothness = /*ase_frag_out:Smoothness;Float;4;-1;_Smoothness*/0.5/*end*/;
-				float Occlusion = /*ase_frag_out:Occlusion;Float;5;-1;_Occlusion*/1/*end*/;
-				float Alpha = /*ase_frag_out:Alpha;Float;6;-1;_Alpha*/1/*end*/;
-				float AlphaClipThreshold = /*ase_frag_out:Alpha Clip Threshold;Float;7;-1;_AlphaClip*/0.5/*end*/;
-				float AlphaClipThresholdShadow = /*ase_frag_out:Alpha Clip Threshold Shadow;Float;16;-1;_AlphaClipShadow*/0.5/*end*/;
-				float3 BakedGI = /*ase_frag_out:Baked GI;Float3;11;-1;_BakedGI*/0/*end*/;
-				float3 RefractionColor = /*ase_frag_out:Refraction Color;Float3;12;-1;_RefractionColor*/1/*end*/;
-				float RefractionIndex = /*ase_frag_out:Refraction Index;Float;13;-1;_RefractionIndex*/1/*end*/;
-				float3 Transmission = /*ase_frag_out:Transmission;Float3;14;-1;_Transmission*/1/*end*/;
-				float3 Translucency = /*ase_frag_out:Translucency;Float3;15;-1;_Translucency*/1/*end*/;
+				float4 uvs4_MainTex = IN.ase_texcoord8;
+				uvs4_MainTex.xy = IN.ase_texcoord8.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float3 tanToWorld0 = float3( WorldTangent.x, WorldBiTangent.x, WorldNormal.x );
+				float3 tanToWorld1 = float3( WorldTangent.y, WorldBiTangent.y, WorldNormal.y );
+				float3 tanToWorld2 = float3( WorldTangent.z, WorldBiTangent.z, WorldNormal.z );
+				float3 ase_tanViewDir =  tanToWorld0 * WorldViewDirection.x + tanToWorld1 * WorldViewDirection.y  + tanToWorld2 * WorldViewDirection.z;
+				ase_tanViewDir = normalize(ase_tanViewDir);
+				float2 OffsetPOM153 = POM( _ParallaxMap, uvs4_MainTex.xy, ddx(uvs4_MainTex.xy), ddy(uvs4_MainTex.xy), WorldNormal, WorldViewDirection, ase_tanViewDir, 8, 8, ( _Parallax * -1.0 ), 0, _ParallaxMap_ST.xy, float2(0,0), 0 );
+				float2 UV_Main492 = OffsetPOM153;
+				float4 tex2DNode9 = tex2D( _MainTex, UV_Main492 );
+				float4 color297 = IsGammaSpace() ? float4(1,1,1,0) : float4(1,1,1,0);
+				#ifdef _VERTEXTINT_ON
+				float4 staticSwitch296 = IN.ase_color;
+				#else
+				float4 staticSwitch296 = color297;
+				#endif
+				float4 albedooutput516 = ( tex2DNode9 * _Color * staticSwitch296 );
+				float4 tex2DNode282 = tex2D( _ColorMask, UV_Main492 );
+				float4 ColorMask454 = tex2DNode282;
+				float4 ColorShift1454 = _ColorShift1;
+				float4 ColorShift2454 = _ColorShift2;
+				float4 ColorShift3454 = _ColorShift3;
+				float3 localColorShift454 = ColorShift454( ColorMask454 , ColorShift1454 , ColorShift2454 , ColorShift3454 );
+				float3 ColorMask473 = localColorShift454;
+				float4 coloralbedo521 = ( albedooutput516 * float4( ColorMask473 , 0.0 ) );
+				#ifdef _COLORSHIFT
+				float4 staticSwitch293 = coloralbedo521;
+				#else
+				float4 staticSwitch293 = albedooutput516;
+				#endif
+				float4 ColorMaskAlbedo501 = staticSwitch293;
+				float In0446 = 0.0;
+				float2 localReturnDetailAlbedo446 = ReturnDetailAlbedo446( In0446 );
+				float4 uvs4_DetailAlbedoMap = IN.ase_texcoord8;
+				uvs4_DetailAlbedoMap.xy = IN.ase_texcoord8.xy * _DetailAlbedoMap_ST.xy + _DetailAlbedoMap_ST.zw;
+				float4 DetailAlbedoUV499 = ( ( ( float4( OffsetPOM153, 0.0 , 0.0 ) - uvs4_MainTex ) * float4( localReturnDetailAlbedo446, 0.0 , 0.0 ) ) + uvs4_DetailAlbedoMap );
+				float temp_output_9_0_g152 = tex2D( _DetailMask, DetailAlbedoUV499.xy ).r;
+				float temp_output_18_0_g152 = ( 1.0 - temp_output_9_0_g152 );
+				float3 appendResult16_g152 = (float3(temp_output_18_0_g152 , temp_output_18_0_g152 , temp_output_18_0_g152));
+				float3 DetailAlbedoMORE512 = ( ColorMaskAlbedo501.rgb * ( ( ( tex2D( _DetailAlbedoMap, DetailAlbedoUV499.xy ).rgb * (unity_ColorSpaceDouble).rgb ) * temp_output_9_0_g152 ) + appendResult16_g152 ) );
+				#ifdef _USEDETAIL_ON
+				float4 staticSwitch199 = float4( DetailAlbedoMORE512 , 0.0 );
+				#else
+				float4 staticSwitch199 = staticSwitch293;
+				#endif
+				float4 AlbedoDetails488 = staticSwitch199;
+				
+				float3 unpack99 = UnpackNormalScale( tex2D( _DetailNormalMap, DetailAlbedoUV499.xy ), _DetailNormalMapScale );
+				unpack99.z = lerp( 1, unpack99.z, saturate(_DetailNormalMapScale) );
+				float3 DetailNormal480 = unpack99;
+				float clampResult73 = clamp( _BumpScale , 0.0 , 1.0 );
+				float3 unpack70 = UnpackNormalScale( tex2D( _BumpMap, UV_Main492 ), clampResult73 );
+				unpack70.z = lerp( 1, unpack70.z, saturate(clampResult73) );
+				float3 NormalMap477 = unpack70;
+				float3 temp_output_460_0 = BlendNormal( DetailNormal480 , NormalMap477 );
+				float3 Normals486 = temp_output_460_0;
+				
+				float4 Colorshiftbool514 = staticSwitch293;
+				#ifdef _EMITALBEDO_ON
+				float4 staticSwitch391 = Colorshiftbool514;
+				#else
+				float4 staticSwitch391 = float4(1,1,1,1);
+				#endif
+				float4 temp_output_249_0 = ( tex2D( _EmissionMap, UV_Main492 ) * _EmissionColor * staticSwitch391 );
+				float dotResult3_g151 = dot( WorldViewDirection , WorldNormal );
+				float4 Emission484 = ( temp_output_249_0 * saturate( pow( abs( dotResult3_g151 ) , _EmissionFalloff ) ) );
+				
+				float4 MetallicMap464 = tex2D( _MetallicGlossMap, UV_Main492 );
+				float Metallic464 = _Metallic;
+				float Smoothness464 = _Glossiness;
+				#if defined(_METALLICTYPE_MAS)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_METALLICSMOOTHNESS)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_RMA)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MASK)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ALLOY)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ORM)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MAES)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MRA)
+				float staticSwitch157 = 0.0;
+				#else
+				float staticSwitch157 = 0.0;
+				#endif
+				float LuhAcceptor464 = staticSwitch157;
+				float4 localChannelPacker464 = ChannelPacker464( MetallicMap464 , Metallic464 , Smoothness464 , LuhAcceptor464 );
+				float4 break465 = localChannelPacker464;
+				float Metallic527 = ( break465.x * _Metallic );
+				
+				float Smoothness525 = ( break465.z * _Specmod );
+				
+				float VertexOcclusion505 = pow( IN.ase_color.r , 2.0 );
+				#ifdef _VERTEXOCCLUSION_ON
+				float staticSwitch300 = VertexOcclusion505;
+				#else
+				float staticSwitch300 = 1.0;
+				#endif
+				float OcclusionSwitch531 = break465.y;
+				float greenocclusion529 = tex2D( _OcclusionMap, UV_Main492 ).g;
+				#ifdef _USEOCCLUSION_ON
+				float staticSwitch82 = greenocclusion529;
+				#else
+				float staticSwitch82 = OcclusionSwitch531;
+				#endif
+				float3 vNormalTs458 = temp_output_460_0;
+				float NormalToOcclusion458 = _NormalToOcclusion;
+				float localNormaltoOcclusion458 = NormaltoOcclusion458( vNormalTs458 , NormalToOcclusion458 );
+				float lerpResult468 = lerp( 1.0 , ( staticSwitch300 * staticSwitch82 * localNormaltoOcclusion458 ) , _OcclusionStrength);
+				float Occlusion490 = lerpResult468;
+				
+				float _Cull509 = ( _Cull * 0.0 );
+				#ifdef VERTEXILLUMINATION_ON
+				float staticSwitch305 = IN.ase_color.a;
+				#else
+				float staticSwitch305 = 0.0;
+				#endif
+				float Alpha507 = ( staticSwitch305 + tex2DNode9.a );
+				float alphaoutput523 = ( _Cull509 + Alpha507 );
+				
+				float3 Albedo = AlbedoDetails488.rgb;
+				float3 Normal = Normals486;
+				float3 Emission = Emission484.rgb;
+				float3 Specular = 0.5;
+				float Metallic = Metallic527;
+				float Smoothness = Smoothness525;
+				float Occlusion = Occlusion490;
+				float Alpha = alphaoutput523;
+				float AlphaClipThreshold = _Cutoff;
+				float AlphaClipThresholdShadow = 0.5;
+				float3 BakedGI = 0;
+				float3 RefractionColor = 1;
+				float RefractionIndex = 1;
+				float3 Transmission = 1;
+				float3 Translucency = 1;
 				#ifdef ASE_DEPTH_WRITE_ON
-				float DepthValue = /*ase_frag_out:Depth Value;Float;17;-1;_DepthValue*/0/*end*/;
+				float DepthValue = 0;
 				#endif
 
 				#if defined(_ALPHATEST_ON) && !defined(ASE_TERRAIN)
@@ -3855,17 +4153,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
         
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -3876,7 +4175,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef TESSELLATION_ON
@@ -4214,17 +4512,18 @@ Shader "Valve/VRStandard Fluoresence"
 			};
         
 			CBUFFER_START(UnityPerMaterial)
-			float4 _EmissionColor;
+			float4 _MainTex_ST;
 			float4 _FluoresenceTint;
+			float4 _EmissionColor;
 			float4 _DetailAlbedoMap_ST;
 			float4 _ColorShift3;
-			float4 _ColorShift2;
 			float4 _Absorbance;
+			float4 _ColorShift1;
 			float4 _Color;
 			float4 _ParallaxMap_ST;
-			float4 _MainTex_ST;
-			float4 _ColorShift1;
+			float4 _ColorShift2;
 			float _Intensity;
+			float _Parallax;
 			float _Cutoff;
 			float _Cull;
 			float _OcclusionStrength;
@@ -4235,7 +4534,6 @@ Shader "Valve/VRStandard Fluoresence"
 			float _UseFluoresence;
 			float _BumpScale;
 			float _DetailNormalMapScale;
-			float _Parallax;
 			float _Specmod;
 			float _EmissionFalloff;
 			#ifdef TESSELLATION_ON

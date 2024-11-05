@@ -8,7 +8,7 @@ Shader "Valve/VRStandard Transparent"
 		[NoScaleOffset][SingleLineTexture]_BumpMap("Normal Map", 2D) = "bump" {}
 		_BumpScale("Normal Scale", Range( 0 , 1)) = 1
 		_NormalToOcclusion("Normal To Occlusion", Range( 0 , 1)) = 0
-		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK)] _MetallicType("Metallic Type", Float) = 0
+		[KeywordEnum(MAS,MetallicSmoothness,RMA,MASK,Alloy,ORM,MAES,MRA)] _MetallicType("Metallic Type", Float) = 0
 		[NoScaleOffset][SingleLineTexture]_MetallicGlossMap("Metallic Map", 2D) = "white" {}
 		[HideInInspector]_Glossiness("Smoothnes", Range( 0 , 1.5)) = 1
 		_Metallic("Metallic", Range( 0 , 2)) = 1
@@ -238,7 +238,7 @@ Shader "Valve/VRStandard Transparent"
 			#pragma shader_feature_local _COLORSHIFT
 			#pragma shader_feature_local _VERTEXTINT_ON
 			#pragma shader_feature_local _EMITALBEDO_ON
-			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK
+			#pragma shader_feature_local _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK _METALLICTYPE_ALLOY _METALLICTYPE_ORM _METALLICTYPE_MAES _METALLICTYPE_MRA
 			#pragma shader_feature_local _VERTEXOCCLUSION_ON
 			#pragma shader_feature_local _USEOCCLUSION_ON
 			#pragma shader_feature_local VERTEXILLUMINATION_ON
@@ -432,12 +432,19 @@ Shader "Valve/VRStandard Transparent"
 				return MetallicMap;
 				#elif(_METALLICTYPE_RMA)
 				return float4(MetallicMap.g,MetallicMap.b,(1-MetallicMap.r),0);
+				#elif(_METALLICTYPE_MRA)
+				return float4(MetallicMap.r,MetallicMap.b,(1-MetallicMap.g),0);
+				#elif(_METALLICTYPE_ALLOY)
+				return float4(MetallicMap.r,MetallicMap.g,(1-MetallicMap.a),0);
+				#elif(_METALLICTYPE_ORM)
+				return
+				float4(MetallicMap.b,MetallicMap.r,(1-MetallicMap.g),0);
 				#elif(_METALLICTYPE_MAES)
 				return MetallicMap.rgab;
 				#elif(_METALLICTYPE_FLOATS)
 				return float4(Metallic,1,Smoothness,0);
 				#elif(_METALLICTYPE_MASK)
-				return float4(MetallicMap.r, 1, MetallicMap.a,MetallicMap.g);
+				return MetallicMap.rgab;
 				#else
 				return float4(MetallicMap.r,1,MetallicMap.a,0);
 				#endif
@@ -633,6 +640,14 @@ Shader "Valve/VRStandard Transparent"
 				#elif defined(_METALLICTYPE_RMA)
 				float staticSwitch157 = 0.0;
 				#elif defined(_METALLICTYPE_MASK)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ALLOY)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_ORM)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MAES)
+				float staticSwitch157 = 0.0;
+				#elif defined(_METALLICTYPE_MRA)
 				float staticSwitch157 = 0.0;
 				#else
 				float staticSwitch157 = 0.0;
