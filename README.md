@@ -23,7 +23,7 @@ https://github.com/EvroDeveloper/Labworks-VRStandard.git
  - Color Mask
  - Vertex Color Options (Vertex Occlusion, Vertex Tint, etc)
  - Emission and Albedo Mult (if needed, used on a couple of BW materials)
- - Transparency (Separate Shaders for Transparent and a couple other forks)
+ - Transparency (There are still separate shaders for Transparent to keep references)
  - Render Face Culling (Back, Front, or Both)
  - Surface Options (Opaque, Transparent, Fade)
  
