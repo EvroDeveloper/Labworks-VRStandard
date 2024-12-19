@@ -1,8 +1,9 @@
-Shader "Valve/VRStandard"
+Shader "Valve/VRStandard AlphaClip"
 {
 	Properties
 	{
 		[HideInInspector] _AlphaCutoff("Alpha Cutoff ", Range(0, 1)) = 0.5
+		[Header(If using Transparent or Fade Turn to 0)]_Cutoff("Alpha Clipping", Range( 0 , 1)) = 0
 		_MainTex("Main Tex", 2D) = "white" {}
 		[HideInInspector]_Cull("Cull", Float) = 0
 		_Color("Main Color", Color) = (1,1,1,1)
@@ -90,6 +91,7 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
+			#define _ALPHATEST_ON 1
 			#define ASE_VERSION 19701
 			#define ASE_SRP_VERSION -1
 			#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def
@@ -312,6 +314,7 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
+				float _CastShadows;
 				float _ZWrite;
 				float _BlendDst;
 				float _BlendSrc;
@@ -322,13 +325,13 @@ Shader "Valve/VRStandard"
 				float _BakedMutiplier;
 				float _Glossiness;
 				float _Metallic;
-				float _CastShadows;
+				float _ReceiveShadows;
 				float _EmissionFalloff;
 				float _BumpScale;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _SpecMod;
-				float _ReceiveShadows;
+				float _Cutoff;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -769,7 +772,7 @@ Shader "Valve/VRStandard"
 				half smoothness = Smoothness525;
 				half ao = Occlusion490;
 				half alpha = alphaoutput523;
-				half alphaclip = half(0);
+				half alphaclip = _Cutoff;
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -933,6 +936,7 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
+			#define _ALPHATEST_ON 1
 			#define ASE_VERSION 19701
 			#define ASE_SRP_VERSION -1
 
@@ -989,6 +993,7 @@ Shader "Valve/VRStandard"
 			float4 _ColorShift3;
 			float4 _DetailAlbedoMap_ST;
 			float4 _EmissionColor;
+			float _CastShadows;
 			float _ZWrite;
 			float _BlendDst;
 			float _BlendSrc;
@@ -999,13 +1004,13 @@ Shader "Valve/VRStandard"
 			float _BakedMutiplier;
 			float _Glossiness;
 			float _Metallic;
-			float _CastShadows;
+			float _ReceiveShadows;
 			float _EmissionFalloff;
 			float _BumpScale;
 			float _DetailNormalMapScale;
 			float _Parallax;
 			float _SpecMod;
-			float _ReceiveShadows;
+			float _Cutoff;
 			CBUFFER_END
 
 
@@ -1155,7 +1160,7 @@ Shader "Valve/VRStandard"
 			    
 			
 				half alpha = alphaoutput523;
-				half alphaclip = half(0);
+				half alphaclip = _Cutoff;
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1195,6 +1200,7 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
+			#define _ALPHATEST_ON 1
 			#define ASE_VERSION 19701
 			#define ASE_SRP_VERSION -1
 
@@ -1275,6 +1281,7 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
+				float _CastShadows;
 				float _ZWrite;
 				float _BlendDst;
 				float _BlendSrc;
@@ -1285,13 +1292,13 @@ Shader "Valve/VRStandard"
 				float _BakedMutiplier;
 				float _Glossiness;
 				float _Metallic;
-				float _CastShadows;
+				float _ReceiveShadows;
 				float _EmissionFalloff;
 				float _BumpScale;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _SpecMod;
-				float _ReceiveShadows;
+				float _Cutoff;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -1514,7 +1521,7 @@ Shader "Valve/VRStandard"
 				normals = half4(EncodeWSNormalForNormalsTex(normalWS),0);
 			// End Injection FRAG_NORMALS from Injection_NormalMap_DepthNormals.hlsl ----------------------------------------------------------
 				half alpha = alphaoutput523;
-				half alphaclip = half(0);
+				half alphaclip = _Cutoff;
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1559,6 +1566,7 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
+			#define _ALPHATEST_ON 1
 			#define ASE_VERSION 19701
 			#define ASE_SRP_VERSION -1
 
@@ -1621,6 +1629,7 @@ Shader "Valve/VRStandard"
 			float4 _ColorShift3;
 			float4 _DetailAlbedoMap_ST;
 			float4 _EmissionColor;
+			float _CastShadows;
 			float _ZWrite;
 			float _BlendDst;
 			float _BlendSrc;
@@ -1631,13 +1640,13 @@ Shader "Valve/VRStandard"
 			float _BakedMutiplier;
 			float _Glossiness;
 			float _Metallic;
-			float _CastShadows;
+			float _ReceiveShadows;
 			float _EmissionFalloff;
 			float _BumpScale;
 			float _DetailNormalMapScale;
 			float _Parallax;
 			float _SpecMod;
-			float _ReceiveShadows;
+			float _Cutoff;
 			CBUFFER_END
 
 
@@ -1811,7 +1820,7 @@ Shader "Valve/VRStandard"
 			    
 
 				half alpha = alphaoutput523;
-				half alphaclip = half(0);
+				half alphaclip = _Cutoff;
 				half alphaclipthresholdshadow = half(0);
 				#ifdef ASE_DEPTH_WRITE_ON
 				float DepthValue = 0;
@@ -1856,6 +1865,7 @@ Shader "Valve/VRStandard"
 			#define PC_RECEIVE_SHADOWS
 			#define PC_SSAO
 			#define MOBILE_LIGHTS_VERTEX
+			#define _ALPHATEST_ON 1
 			#define ASE_VERSION 19701
 			#define ASE_SRP_VERSION -1
 			#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def
@@ -1929,6 +1939,7 @@ Shader "Valve/VRStandard"
 				float4 _ColorShift3;
 				float4 _DetailAlbedoMap_ST;
 				float4 _EmissionColor;
+				float _CastShadows;
 				float _ZWrite;
 				float _BlendDst;
 				float _BlendSrc;
@@ -1939,13 +1950,13 @@ Shader "Valve/VRStandard"
 				float _BakedMutiplier;
 				float _Glossiness;
 				float _Metallic;
-				float _CastShadows;
+				float _ReceiveShadows;
 				float _EmissionFalloff;
 				float _BumpScale;
 				float _DetailNormalMapScale;
 				float _Parallax;
 				float _SpecMod;
-				float _ReceiveShadows;
+				float _Cutoff;
 				//float4 _BaseMap_ST;
 				//half4 _BaseColor;
 			// Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
@@ -2260,7 +2271,7 @@ Shader "Valve/VRStandard"
 				#endif
 			
 				half alpha = alphaoutput523;
-				half alphaclip = half(0);
+				half alphaclip = _Cutoff;
 				half alphaclipthresholdshadow = half(0);
 				#if defined(_ALPHATEST_ON)
 					clip(alpha - alphaclip);
