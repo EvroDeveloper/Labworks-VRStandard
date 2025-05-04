@@ -1,6 +1,7 @@
 // Need Todos
 // Add _PARALLAX, _EMISSION,  static switch in Amplify
 // Possibly refactor PackingMode to be BETTER
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System;
@@ -661,3 +662,4 @@ public class VRStandardShaderGUI : ShaderGUI
             m.DisableKeyword(keyword);
     }
 }
+#endif
