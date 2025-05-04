@@ -229,7 +229,7 @@ public class VRStandardShaderGUI : ShaderGUI
 
         if (m_FirstTimeApply)
         {
-            SetMaterialKeywords(material);
+            MaterialChanged(material);
             m_FirstTimeApply = false;
         }
     }
