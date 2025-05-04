@@ -293,7 +293,7 @@ public class VRStandardShaderGUI : ShaderGUI
         DetailModePopup();
 
         m_MaterialEditor.TexturePropertySingleLine(Styles.detailMaskText, detailMask);
-        m_MaterialEditor.TexturePropertySingleLine(Styles.detailAlbedoText, detailAlbedoMap); 
+        m_MaterialEditor.TexturePropertySingleLine(Styles.detailAlbedoText, detailAlbedoMap);
         if (!bUnlit)
         {
             m_MaterialEditor.TexturePropertySingleLine(Styles.detailNormalMapText, detailNormalMap, detailNormalMapScale);
@@ -634,6 +634,23 @@ public class VRStandardShaderGUI : ShaderGUI
         SetupTexturePackingMode(material, (TexturePackingMode)material.GetFloat("_PackingMode"));
         SetupDetailBlendMode(material, (DetailBlendMode)material.GetFloat("_DetailMode"));
         SetMaterialKeywords(material);
+    }
+
+    [MenuItem("Tools/VRStandard/Refresh Material Settings (Debug)")]
+    static void RefreshProjectMaterials()
+    {
+        string[] materialGuids = AssetDatabase.FindAssets("t:Material");
+
+        foreach (string guid in materialGuids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+
+            if (mat != null)
+            {
+                MaterialChanged(mat);
+            }
+        }
     }
 
     static void SetKeyword(Material m, string keyword, bool state)
